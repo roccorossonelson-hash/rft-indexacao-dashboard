@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFT Indexação Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #1e293b;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: #0f172a;
+            border-bottom: 2px solid #334155;
+        }
+
+        .summary-card {
+            background: #334155;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            text-align: center;
+            color: #e2e8f0;
+        }
+
+        .summary-card.indexed {
+            border-color: #28a745;
+        }
+
+        .summary-card.indexed .count {
+            color: #28a745;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .summary-card.pending {
+            border-color: #ffc107;
+        }
+
+        .summary-card.pending .count {
+            color: #ffc107;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .summary-card.todo {
+            border-color: #17a2b8;
+        }
+
+        .summary-card.todo .count {
+            color: #17a2b8;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .summary-card.blocked {
+            border-color: #dc3545;
+        }
+
+        .summary-card.blocked .count {
+            color: #dc3545;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .summary-card label {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-top: 8px;
+            display: block;
+        }
+
+        .controls {
+            padding: 20px;
+            background: #0f172a;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls input, .controls select, .controls button {
+            padding: 10px 15px;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .controls button {
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-weight: 600;
+        }
+
+        .controls button:hover {
+            background: #764ba2;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: #1e293b;
+        }
+
+        thead {
+            background: #334155;
+            border-bottom: 2px solid #475569;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #e2e8f0;
+            background: #334155;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #475569;
+            color: #cbd5e1;
+        }
+
+        tr:hover {
+            background: #475569;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .status-indexed {
+            background: #064e3b;
+            color: #86efac;
+        }
+
+        .status-pending {
+            background: #713f12;
+            color: #fcd34d;
+        }
+
+        .status-todo {
+            background: #1e3a8a;
+            color: #93c5fd;
+        }
+
+        .status-blocked {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .status-rejected {
+            background: #374151;
+            color: #d1d5db;
+        }
+
+        .status-submitted {
+            background: #164e63;
+            color: #67e8f9;
+        }
+
+        .urgency-high {
+            background: #7f1d1d;
+        }
+
+        .footer {
+            padding: 20px;
+            background: #0f172a;
+            border-top: 2px solid #334155;
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        .deadline {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 RFT Indexação Dashboard</h1>
+            <p>Revista Fórum Trabalhista — Rastreamento de Cadastros e Indexação</p>
+            <p style="margin-top: 10px; font-size: 12px;">Atualizado: 11/06/2026 | Próximo Deadline: <span class="deadline">20/06/2026 (ROAD)</span></p>
+        </div>
+
+        <div class="summary">
+            <div class="summary-card indexed">
+                <div class="count">15</div>
+                <label>Indexadas/Ativadas ✅</label>
+            </div>
+            <div class="summary-card pending">
+                <div class="count">7</div>
+                <label>Aguardando/Pendente ⏳</label>
+            </div>
+            <div class="summary-card todo">
+                <div class="count">9</div>
+                <label>Futuro/Outreach 📧</label>
+            </div>
+            <div class="summary-card blocked">
+                <div class="count">7</div>
+                <label>Bloqueadas 🔴</label>
+            </div>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="🔍 Filtrar por base..." style="flex: 1; min-width: 200px;">
+            <select id="statusFilter">
+                <option value="">Filtrar por Status...</option>
+                <option value="✅">Indexadas/Ativadas/Enviadas</option>
+                <option value="⏳">Aguardando</option>
+                <option value="🔄">Em migração</option>
+                <option value="📧">Outreach</option>
+                <option value="🟡">Futuro</option>
+                <option value="💰">Pendente orçamento</option>
+                <option value="📋">Pendente manual</option>
+                <option value="🔴">Bloqueadas</option>
+                <option value="❌">Rejeitadas</option>
+            </select>
+            <button onclick="printTable()">🖨️ Imprimir</button>
+            <button onclick="exportCSV()">📥 Exportar CSV</button>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th style="width: 20%">BASE</th>
+                        <th style="width: 18%">STATUS</th>
+                        <th style="width: 12%">DATA AÇÃO</th>
+                        <th style="width: 12%">PRAZO RESPOSTA</th>
+                        <th style="width: 25%">AÇÃO NECESSÁRIA</th>
+                        <th style="width: 13%">RESPONSÁVEL</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>📁 Arquivos Relacionados: RFT-Indexacao-Agente.md | RFT-Indexacao-GuiaRapido.txt | RFT-IMPLEMENTACAO-COMPLETA-FINAL-11062026.txt</p>
+            <p style="margin-top: 10px;">Próxima atualização: 18/06/2026 | Contato: rocconelson@hotmail.com</p>
+        </div>
+    </div>
+
+    <script>
+        const data = [
+            {base: "Google Scholar", status: "✅ INDEXADA", data: "2012", prazo: "N/A", acao: "Nenhuma", resp: "Sistema"},
+            {base: "BASE", status: "✅ INDEXADA", data: "2023", prazo: "N/A", acao: "Nenhuma", resp: "Sistema"},
+            {base: "PKP-PN", status: "✅ ATIVADO", data: "11/06/2026", prazo: "N/A", acao: "Plugin ativado no OJS — preservação automática", resp: "Sistema"},
+            {base: "OpenDOAR", status: "✅ ENVIADO", data: "11/06/2026", prazo: "5-10 DIAS", acao: "Formulário enviado — monitorar email para confirmação", resp: "Rocco"},
+            {base: "CORE", status: "⏳ APROVACAO_PENDENTE", data: "06/06/2026", prazo: "27/06/2026", acao: "Email enviado — monitorar email + CORE Dashboard", resp: "Rocco"},
+            {base: "ROAD", status: "⏳ RESPOSTA_PENDENTE", data: "06/06/2026", prazo: "20/06/2026", acao: "Email enviado — verificar resposta issn@issn.org", resp: "Rocco"},
+            {base: "Miguilim", status: "⏳ EM_ANALISE", data: "11/06/2026", prazo: "15-18/06/2026", acao: "Submetido — aguardando aprovação IBICT (5-7 dias)", resp: "Rocco"},
+            {base: "DIADORIM", status: "🔄 MIGRACAO_MIGUILIM", data: "05/06/2026", prazo: "ASAP", acao: "Migrando para Miguilim", resp: "TI/Admin"},
+            {base: "OASISBR", status: "✅ EMAIL_ENVIADO", data: "11/06/2026", prazo: "10-15 DIAS", acao: "Email enviado — aguardar resposta", resp: "Rocco"},
+            {base: "Redalyc", status: "⏳ EM_AVALIACAO", data: "11/06/2026", prazo: "20-25/06/2026", acao: "Confirmação recebida (11/06) — redirecionado para Mejora y Aseguramiento de Calidad. Aguardando resposta de evaluacion@redalyc.org", resp: "Rocco"},
+            {base: "Lens.org", status: "✅ EMAIL_ENVIADO", data: "11/06/2026", prazo: "10-15 DIAS", acao: "Email enviado — aguardar resposta", resp: "Rocco"},
+            {base: "EZB", status: "✅ EMAIL_ENVIADO", data: "11/06/2026", prazo: "01/07/2026", acao: "Email enviado — aguardar resposta", resp: "Rocco"},
+            {base: "vLex", status: "✅ EMAIL_ENVIADO", data: "11/06/2026", prazo: "JUL/2026", acao: "Email enviado — aguardar resposta", resp: "Rocco"},
+            {base: "DIALNET", status: "❌ REJEITADA", data: "08/06/2026", prazo: "N/A", acao: "Descartar", resp: "Sistema"},
+            {base: "JournalTOCs", status: "✅ FORMULARIO_PRONTO", data: "11/06/2026", prazo: "Quando puder", acao: "Formulário pronto (5 min). Guia: https://www.journaltocs.ac.uk/searchArticles.php", resp: "Rocco"},
+            {base: "REDIB", status: "✅ FORMULARIO_ENVIADO", data: "11/06/2026", prazo: "18/06/2026", acao: "Formulário enviado — aguardar resposta da REDIB", resp: "Rocco"},
+            {base: "MIAR", status: "🟡 AGUARDANDO_PROPAGACAO", data: "11/06/2026", prazo: "20/06/2026", acao: "ISSN não reconhecido em bases MIAR. Tentado — aguardar propagação em BASE. Tentar novamente em 2-3 semanas", resp: "Rocco"},
+            {base: "LATINDEX", status: "⏳ REABERTURA", data: "—", prazo: "2027", acao: "Monitorar site; enviar quando abrir", resp: "Rocco"},
+            {base: "Redalyc (Portal)", status: "📧 OUTREACH", data: "—", prazo: "—", acao: "Verificar status do envio do email", resp: "Rocco"},
+            {base: "WorldCat", status: "🟡 NAO_INICIADO", data: "—", prazo: "FUTURO", acao: "Indexação via agregadores (automático após OAI-PMH)", resp: "Sistema"},
+            {base: "Dimensions", status: "🟡 VERIFICAR", data: "—", prazo: "FUTURO", acao: "Verificar se já indexado automaticamente", resp: "Rocco"},
+            {base: "OpenAlex", status: "🟡 AUTOMATICO", data: "—", prazo: "FUTURO", acao: "Indexação automática via OAI-PMH — monitorar", resp: "Sistema"},
+            {base: "SUMARIOS.ORG", status: "💰 PENDENTE_ORCAMENTO", data: "—", prazo: "—", acao: "Aprovar orçamento (R$328-348/ano) + PIX", resp: "Editora"},
+            {base: "HeinOnline", status: "📧 OUTREACH", data: "—", prazo: "—", acao: "Email apresentação pendente", resp: "Rocco"},
+            {base: "Periódicos CAPES", status: "🟡 NAO_INICIADO", data: "—", prazo: "2025+", acao: "Verificar novo sistema de submissão CAPES", resp: "Rocco"},
+            {base: "PKP-PN (SSH)", status: "🟡 SETUP_FUTURO", data: "—", prazo: "FUTURO", acao: "Setup avançado via SSH/admin (opcional)", resp: "TI"},
+            {base: "Crossref", status: "✅ INDEXADA", data: "Via OAI-PMH", prazo: "N/A", acao: "Registro de DOI — indexação automática", resp: "Sistema"},
+            {base: "CiteFactor", status: "✅ INDEXADA", data: "Via agregadores", prazo: "N/A", acao: "Índice de citações — monitorar", resp: "Sistema"},
+            {base: "PKP INDEX", status: "✅ INDEXADA", data: "Via PKP-PN", prazo: "N/A", acao: "Índice de periódicos PKP — automático", resp: "Sistema"},
+            {base: "Periódicos de Minas", status: "✅ INDEXADA", data: "Via OAI-PMH", prazo: "N/A", acao: "Diretório regional MG — indexação automática", resp: "Sistema"},
+            {base: "Yale University Library", status: "✅ INDEXADA", data: "Via agregadores", prazo: "N/A", acao: "Catálogo acadêmico — via OAI-PMH", resp: "Sistema"},
+            {base: "CNEN", status: "✅ INDEXADA", data: "Via OAI-PMH", prazo: "N/A", acao: "Base de Energia Nuclear — indexação automática", resp: "Sistema"},
+            {base: "DOAJ", status: "🔴 BLOQUEADO_EMBARGO", data: "—", prazo: "—", acao: "Nenhuma — embargo incompatível", resp: "N/A"},
+            {base: "Scopus", status: "🔴 NAO_ELEGIVEL", data: "—", prazo: "6-12 MESES", acao: "Revisar 2027 com h-index", resp: "Rocco"},
+            {base: "Web of Science", status: "🔴 NAO_ELEGIVEL", data: "—", prazo: "6-12 MESES", acao: "Revisar 2027 com Impact Factor", resp: "Rocco"},
+            {base: "SciELO", status: "🔴 NAO_ELEGIVEL", data: "—", prazo: "2027", acao: "Revisar quando 3+ anos de operação", resp: "Rocco"},
+            {base: "CLOCKSS", status: "🔴 NAO_ELEGIVEL", data: "—", prazo: "2027", acao: "Revisar com 3+ anos operação", resp: "Rocco"},
+            {base: "LOCKSS", status: "🔴 NAO_CONFIGURADO", data: "—", prazo: "FUTURO", acao: "Setup opcional; baixa prioridade", resp: "TI"},
+            {base: "LiVRE", status: "🟡 NAO_INICIADO", data: "—", prazo: "FUTURO", acao: "Verificar requisitos e possibilidade de cadastro", resp: "Rocco"},
+            {base: "SCITE", status: "🟡 NAO_INICIADO", data: "—", prazo: "FUTURO", acao: "Verificar requisitos e possibilidade de cadastro", resp: "Rocco"},
+            {base: "EuroPub", status: "🟡 NAO_INICIADO", data: "—", prazo: "FUTURO", acao: "Verificar requisitos e possibilidade de cadastro", resp: "Rocco"},
+            {base: "LatinREV", status: "🟡 NAO_INICIADO", data: "—", prazo: "FUTURO", acao: "Verificar requisitos e possibilidade de cadastro", resp: "Rocco"},
+            {base: "OAJI", status: "🟡 NAO_INICIADO", data: "—", prazo: "FUTURO", acao: "Verificar requisitos e possibilidade de cadastro", resp: "Rocco"},
+            {base: "ASCI", status: "🟡 NAO_INICIADO", data: "—", prazo: "FUTURO", acao: "Verificar requisitos e possibilidade de cadastro", resp: "Rocco"},
+            {base: "DRJI", status: "🟡 NAO_INICIADO", data: "—", prazo: "FUTURO", acao: "Verificar requisitos e possibilidade de cadastro", resp: "Rocco"},
+            {base: "Rede Cariniana", status: "🟡 REPOSITORIO", data: "—", prazo: "FUTURO", acao: "Repositório de preservação digital — verificar acesso", resp: "TI"}
+        ];
+
+        function renderTable(dataToRender = data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            dataToRender.forEach(row => {
+                const tr = document.createElement('tr');
+
+                let statusClass = 'status-todo';
+                if (row.status.includes('✅ INDEXADA') || row.status.includes('✅ ATIVADO')) statusClass = 'status-indexed';
+                else if (row.status.includes('✅')) statusClass = 'status-submitted';
+                else if (row.status.includes('⏳') || row.status.includes('🔄')) statusClass = 'status-pending';
+                else if (row.status.includes('🔴')) statusClass = 'status-blocked';
+                else if (row.status.includes('❌')) statusClass = 'status-rejected';
+
+                let urgencyClass = '';
+                if (['CORE', 'ROAD', 'Miguilim', 'DIADORIM'].includes(row.base)) urgencyClass = 'urgency-high';
+
+                tr.innerHTML = `
+                    <td><strong>${row.base}</strong></td>
+                    <td><span class="status-badge ${statusClass}">${row.status}</span></td>
+                    <td>${row.data}</td>
+                    <td>${row.prazo}</td>
+                    <td>${row.acao}</td>
+                    <td>${row.resp}</td>
+                `;
+
+                if (urgencyClass) tr.classList.add(urgencyClass);
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const search = this.value.toLowerCase();
+            const filtered = data.filter(row =>
+                row.base.toLowerCase().includes(search) ||
+                row.status.toLowerCase().includes(search)
+            );
+            renderTable(filtered);
+        });
+
+        document.getElementById('statusFilter').addEventListener('change', function() {
+            const filter = this.value;
+            const filtered = filter ? data.filter(row => row.status.includes(filter)) : data;
+            renderTable(filtered);
+        });
+
+        function printTable() {
+            window.print();
+        }
+
+        function exportCSV() {
+            let csv = 'BASE,STATUS,DATA_ACAO,PRAZO_RESPOSTA,ACAO_NECESSARIA,RESPONSAVEL\n';
+            data.forEach(row => {
+                csv += `"${row.base}","${row.status}","${row.data}","${row.prazo}","${row.acao}","${row.resp}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'RFT-Indexacao-Dashboard.csv';
+            a.click();
+        }
+
+        // Renderizar tabela ao carregar
+        renderTable();
+    </script>
+</body>
+</html>
